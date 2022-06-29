@@ -15,120 +15,21 @@
 #
 #     Find the least value of n for which p(n) is divisible by one million.
 
-# Triangular grid to keep track of partitions counted
-# PARTITION_WAYS[i][j] is the
-#   number of ways to partition `i`
-#   where the parts cannot exceed `j+1`.
-# No partitions exist where max part is 0, which is why `j` is shifted.
-PARTITION_COUNTS = []
-
-
-def partition_count_from_grid(n, max_part):
+def pentagonal(k):
     """
-    Returns the computed value of number of partitions of `n`
-      where the parts in any such partition do not exceed `max_part`,
-      if this value has already been computed and stored in the grid,
-      else None.
+    Returns the generalized pentagonal number (g{k}).
 
     Args:
-        n        (int): Non-negative integer
-        max_part (int): Maximum allowed value of any part
+        k (int): Integer
 
     Returns:
-        (Optional[int]):
-            Number of partitions of `n` having maximum part value at most `max_part`, if already memoized.
+        (int): Generalized pentagonal number g{k}
 
     Raises:
         AssertError: if incorrect args are given
     """
-    assert type(n) == int and n >= 0
-    assert max_part is None or type(max_part) == int and max_part >= 0
-
-    global PARTITION_COUNTS
-
-    max_part = max(1, min(n, max_part or n))
-    if n < len(PARTITION_COUNTS) and max_part - 1 < len(PARTITION_COUNTS[n]):
-        return PARTITION_COUNTS[n][max_part - 1]
-    else:
-        return None
-
-
-def partition_count(n_0, max_part_0=None):
-    """
-    Returns the number of partitions of `n`
-      where the parts in any such partition do not exceed `max_part`.
-    Note that this also includes partitions having no parts of size `max_part`.
-
-    Args:
-        n_0        (int): Non-negative integer
-        max_part_0 (int): Maximum allowed value of any part
-
-    Returns:
-        (int): Number of partitions of `n` having maximum part value at most `max_part`.
-
-    Raises:
-        AssertError: if incorrect args are given
-    """
-    assert type(n_0) == int and n_0 >= 0
-    assert max_part_0 is None or type(max_part_0) == int and max_part_0 >= 0
-
-    # No partitions of `n_0` having parts greater than `n_0` itself.
-    # So just skip down to `max_part_0` as `n_0`, as that's the desired answer anyway.
-    max_part_0 = max(1, min(n_0, max_part_0 or n_0))
-
-    # Idea:
-    #     Attempt to use `max_part` as much as possible to achieve `n`.
-    #     Siphon off `max_part` one-by-one, using smaller partition sizes to fill the gap.
-    #     To avoid redundant computation, maintain computed counts in `PARTITION_COUNTS`
-    #
-    #     Also had to rewrite using a stack to avoid hitting max recursion depth.
-
-    global PARTITION_COUNTS
-    query_stack = [(n_0, max_part_0)]
-
-    while len(query_stack) > 0:
-        n, max_part = query_stack.pop()
-
-        if partition_count_from_grid(n, max_part) is None:
-            # Extend triangular grid with empty/null values to avoid indexing issues
-            PARTITION_COUNTS += [[] for _ in range(n+1-len(PARTITION_COUNTS))]
-            PARTITION_COUNTS[n] += [None for _ in range(max_part-len(PARTITION_COUNTS[n]))]
-
-            if n == 0 or max_part == 1:
-                # Base cases:
-                #   * n = 0        -> Doesn't really make sense, but let it be 1 to satisfy higher calls
-                #   * max_part = 1 -> Only one such partition, which is simply (1+...+1), i.e. `1` added `n` times
-                PARTITION_COUNTS[n][max_part-1] = 1
-            else:
-                # Recurrent cases to be added,
-                #   by decomposing this partitioning into partitions of lesser numbers/parts
-                ways = 0
-                sub_stack = []  # Substack of lower args not yet computed
-
-                # Use as much of `max_part` as possible
-                next_max_part = max_part - 1
-                for remaining_sum in range(n, -1, -max_part):
-                    # Check if this lower call has already been computed
-                    ways_this = partition_count_from_grid(remaining_sum, next_max_part)
-                    if ways_this is None:
-                        this_max_part = max(1, min(remaining_sum, next_max_part))
-                        sub_stack.append((remaining_sum, this_max_part))
-                    elif len(sub_stack) == 0:
-                        ways += ways_this
-                    else:
-                        continue
-
-                if len(sub_stack) > 0:
-                    # Can't yet memoize the partition count, as we need the lower values first
-                    query_stack.append((n, max_part))  # Need to check this again later
-                    query_stack += sub_stack  # Compute the lower values first
-                else:
-                    # No missing entries in grid, so memoize newly summed count
-                    PARTITION_COUNTS[n][max_part-1] = ways
-        else:
-            continue
-
-    return PARTITION_COUNTS[n_0][max_part_0-1]
+    assert type(k) == int
+    return k * (3*k - 1) // 2
 
 
 def main(f):
@@ -140,35 +41,74 @@ def main(f):
         f (int): Natural number
 
     Returns:
-        (int, int):
-            Tuple of ...
-              * First `n` s.t. `f` divides p(n)
-              * p(n)
+        (int): First `n` s.t. `f` divides p(n)
 
     Raises:
         AssertError: if incorrect args are given
     """
     assert type(f) == int and f > 0
 
-    # Idea:
+    # Problem:
     #     Refer to [https://en.wikipedia.org/wiki/Partition_(number_theory)]
-    #     Essentially just counting the number of partitions of `n`.
-    #     Since no closed-form expression is known,
-    #       just search until first valid `n` is found.
+    #     Essentially just counting the number of partitions of `n`,
+    #       and then returning the first `n` which is divisible by `f`.
+    #     No closed-form expression is known, so just need to search for first such `n`.
+
+    # Idea 0:
+    #     Attempted to calculate p(n) iteratively,
+    #       using dynamic programming with a triangular grid to keep track of prior output,
+    #       but that took too long.
+
+    # Idea 1:
+    #     Refer to [https://en.wikipedia.org/wiki/Pentagonal_number_theorem#Relation_with_partitions]
+    #     Instead of previous dynamic programming method of partition-counting,
+    #       use a recurrence related to the (generalized) pentagonal numbers
+    #       to calculate each subsequent p(n) using prior output.
+    #     Should be much less time- and memory-intensive than previously attempted method.
+
+    # Idea 2:
+    #     Only need to know if p(n) is divisible by `f`,
+    #       i.e. p(n) = 0 [mod f].
+    #     So just keep track of p(n) [mod f], and return `n` once we hit a 0.
+
+    # Start with p(0) = 1 as base case for recurrence
+    p = [1]
 
     n = 1
     while True:
-        p_n = partition_count(n)
-        if p_n % f == 0:
-            return n, p_n
+        # Calculate p(n) = p(n-1) + p(n-2) - p(n-5) - p(n-7) + ...
+        #   where 1, 2, 5, 7, etc, are the generalized pentagonal numbers.
+        p_n = 0
+
+        k = 0
+        sign = -1
+        while True:
+            # k is { 1, -1, 2, -2, 3, -3, ... }
+            k = -k if k > 0 else 1-k
+
+            # sign is { +, +, -, -, +, +, -, -, ... }
+            if k > 0:
+                sign *= -1
+
+            # p(x) = 0 for all x < 0, so stop when g_k exceeds n
+            g_k = pentagonal(k)
+            if g_k > n:
+                break
+            else:
+                p_n += sign * p[n - g_k]
+                p_n %= f
+                continue
+
+        if p_n == 0:
+            return n
         else:
+            p.append(p_n)
             n += 1
             continue
 
 
 if __name__ == '__main__':
     partition_divisible_factor = int(input('Enter a natural number: '))
-    partition_n, partition_count = main(partition_divisible_factor)
+    partition_n = main(partition_divisible_factor)
     print('Least value of `n` for which p(n) divisible by {}:'.format(partition_divisible_factor))
-    print('  n     = {}'.format(partition_n))
-    print('  p({}) = {}'.format(partition_n, partition_count))
+    print('  n = {}'.format(partition_n))

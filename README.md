@@ -1,4 +1,7 @@
-# Project Euler - Problem 78 - Coin Partitions
+# Project Euler
+
+## Problem 78 - Coin Partitions
+
 Let $p(n)$ represent the number of different ways in which $n$ coins can be separated into piles.
 For example, five coins can be separated into piles in exactly seven different ways, so $p(5) = 7$.
 

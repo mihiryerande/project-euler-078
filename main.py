@@ -15,7 +15,7 @@
 #
 #     Find the least value of n for which p(n) is divisible by one million.
 
-def pentagonal(k):
+def pentagonal(k: int) -> int:
     """
     Returns the generalized pentagonal number (g{k}).
 
@@ -32,7 +32,7 @@ def pentagonal(k):
     return k * (3*k - 1) // 2
 
 
-def main(f):
+def main(f: int) -> int:
     """
     Returns the least number `n` for which
       the number of partitions of `n`, p(n), is divisible by factor `f`.
